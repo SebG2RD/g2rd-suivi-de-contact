@@ -1,0 +1,26 @@
+# Dependances
+/vendor/
+/node_modules/
+
+# Rapports generes par la CI
+/*-report.xml
+/phpcs-report.xml
+/phpstan-report.json
+/sbom.json
+/sbom.xml
+
+# Caches d'outillage
+/.phpunit.cache/
+/.phpcs-cache
+.phpcs.cache
+
+# composer.lock EST versionne volontairement : il fige les versions exactes de
+# l'outillage d'analyse, ce qui rend la CI reproductible et permet a
+# `composer audit` de confronter ces versions a la base d'avis de securite.
+# Dependabot se charge de le faire evoluer.
+
+# Environnement local
+.env
+.env.local
+.DS_Store
+Thumbs.db

@@ -1,0 +1,17 @@
+includes:
+    - vendor/szepeviktor/phpstan-wordpress/extension.neon
+
+parameters:
+    # Niveau maximal : le plugin tient en un fichier, il n'y a aucune raison
+    # d'accepter moins que l'analyse la plus stricte.
+    level: max
+
+    paths:
+        - g2rd-suivi-contact.php
+
+    # Aligne sur « Requires PHP: 8.0 » de l'en-tete du plugin.
+    phpVersion: 80000
+
+    # Les constantes du plugin sont declarees dans le fichier analyse ;
+    # celles du coeur WordPress viennent des stubs de phpstan-wordpress.
+    treatPhpDocTypesAsCertain: false

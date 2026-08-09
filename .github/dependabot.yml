@@ -1,0 +1,28 @@
+version: 2
+
+updates:
+  # Outillage d'analyse (PHPCS, PHPStan, WPCS...). Ces paquets ne sont jamais
+  # livres aux sites, mais une faille dans l'outillage compromettrait la CI,
+  # qui dispose d'un jeton sur le depot.
+  - package-ecosystem: "composer"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      outils-qualite:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Les actions sont epinglees par SHA de commit dans les workflows.
+  # Dependabot met a jour le SHA et le commentaire de version associe : c'est
+  # ce qui rend l'epinglage tenable dans la duree, au lieu de figer des actions
+  # qui ne recevront plus jamais leurs propres correctifs de securite.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5

@@ -1,0 +1,123 @@
+<?xml version="1.0"?>
+<ruleset name="G2RD Suivi Contact">
+    <description>Regles PHPCS pour le plugin G2RD Suivi Contact (WordPress + securite).</description>
+
+    <!-- Chemins a scanner : le plugin tient dans un seul fichier. -->
+    <file>./g2rd-suivi-contact.php</file>
+
+    <exclude-pattern>./vendor/*</exclude-pattern>
+
+    <arg name="extensions" value="php"/>
+    <arg name="colors"/>
+    <arg value="ps"/>
+
+    <!--
+        WordPress Coding Standards.
+
+        Les exclusions ci-dessous sont TOUTES cosmetiques : indentation, espaces,
+        style de commentaire. Aucune regle des categories WordPress.Security,
+        WordPress.DB ou WordPress.WP n'est desactivee — ce sont elles qui
+        constituent le filet de securite du plugin.
+
+        Le style retenu est celui du reste du parc G2RD (heritage PSR-2 :
+        `if ($x)` sans espaces internes, tableaux courts, conditions naturelles).
+    -->
+    <rule ref="WordPress">
+
+        <!-- ── Espacement des appels et declarations de fonctions ─────────── -->
+        <!-- Style PSR-2 : func('arg') sans espace interne. -->
+        <exclude name="PEAR.Functions.FunctionCallSignature.SpaceAfterOpenBracket"/>
+        <exclude name="PEAR.Functions.FunctionCallSignature.SpaceBeforeCloseBracket"/>
+        <exclude name="PEAR.Functions.FunctionCallSignature.NoSpaceBeforeOpenBracket"/>
+        <exclude name="PEAR.Functions.FunctionCallSignature.MultipleArguments"/>
+        <exclude name="PEAR.Functions.FunctionCallSignature.ContentAfterOpenBracket"/>
+        <exclude name="PEAR.Functions.FunctionCallSignature.CloseBracketLine"/>
+        <exclude name="Squiz.Functions.FunctionDeclarationArgumentSpacing.SpacingAfterOpen"/>
+        <exclude name="Squiz.Functions.FunctionDeclarationArgumentSpacing.SpacingBeforeClose"/>
+
+        <!-- Accolade d'ouverture sur la ligne suivante (style du projet). -->
+        <exclude name="Generic.Functions.OpeningFunctionBraceKernighanRitchie"/>
+
+        <!-- ── Structures de controle ────────────────────────────────────── -->
+        <exclude name="WordPress.WhiteSpace.ControlStructureSpacing.NoSpaceAfterOpenParenthesis"/>
+        <exclude name="WordPress.WhiteSpace.ControlStructureSpacing.NoSpaceBeforeCloseParenthesis"/>
+        <exclude name="Generic.WhiteSpace.ArbitraryParenthesesSpacing"/>
+
+        <!-- ── Tableaux ──────────────────────────────────────────────────── -->
+        <!-- Syntaxe courte [] autorisee — plugin PHP 8.0+. -->
+        <exclude name="Generic.Arrays.DisallowShortArraySyntax"/>
+        <exclude name="Universal.Arrays.DisallowShortArraySyntax"/>
+        <exclude name="NormalizedArrays.Arrays.ArrayBraceSpacing"/>
+        <exclude name="NormalizedArrays.Arrays.CommaAfterLast"/>
+        <exclude name="WordPress.Arrays.MultipleStatementAlignment"/>
+        <exclude name="WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound"/>
+        <exclude name="WordPress.Arrays.ArrayDeclarationSpacing.ArrayItemNoNewLine"/>
+        <exclude name="WordPress.Arrays.ArrayKeySpacingRestrictions.NoSpacesAroundArrayKeys"/>
+
+        <!-- ── Operateurs ────────────────────────────────────────────────── -->
+        <exclude name="Universal.WhiteSpace.CommaSpacing"/>
+        <exclude name="Universal.Operators.DisallowShortTernary"/>
+        <exclude name="WordPress.PHP.YodaConditions"/>
+        <exclude name="WordPress.WhiteSpace.OperatorSpacing.NoSpaceAfter"/>
+        <exclude name="WordPress.WhiteSpace.OperatorSpacing.NoSpaceBefore"/>
+        <exclude name="WordPress.WhiteSpace.OperatorSpacing.SpacingBefore"/>
+
+        <!-- ── Formatage ─────────────────────────────────────────────────── -->
+        <exclude name="Generic.Formatting.MultipleStatementAlignment"/>
+        <exclude name="Generic.Formatting.SpaceAfterCast"/>
+        <exclude name="WordPress.WhiteSpace.CastStructureSpacing"/>
+        <exclude name="Generic.Functions.FunctionCallArgumentSpacing.TooMuchSpaceAfterComma"/>
+        <exclude name="Squiz.WhiteSpace.SuperfluousWhitespace.EndLine"/>
+
+        <!-- ── Fins de ligne ─────────────────────────────────────────────── -->
+        <!-- CRLF sur poste Windows ; .gitattributes normalise en LF au commit. -->
+        <exclude name="Generic.Files.LineEndings.InvalidEOLChar"/>
+
+        <!-- ── Commentaires ──────────────────────────────────────────────── -->
+        <exclude name="Squiz.Commenting.InlineComment.InvalidEndChar"/>
+        <exclude name="Squiz.Commenting.InlineComment.WrongStyle"/>
+        <exclude name="Squiz.Commenting.FunctionComment.ParamCommentFullStop"/>
+        <exclude name="Squiz.Commenting.FunctionComment.MissingParamComment"/>
+        <exclude name="Squiz.Commenting.FunctionComment.SpacingAfterParamType"/>
+        <exclude name="Squiz.Commenting.FileComment.SpacingAfterOpen"/>
+        <exclude name="Generic.Commenting.DocComment.MissingShort"/>
+
+        <!-- ── PHP embarque (le <script> de suivi) ───────────────────────── -->
+        <exclude name="Squiz.PHP.EmbeddedPhp.ContentAfterOpen"/>
+        <exclude name="Squiz.PHP.EmbeddedPhp.OpenTagIndent"/>
+        <exclude name="Squiz.PHP.EmbeddedPhp.Indent"/>
+        <exclude name="Generic.WhiteSpace.ScopeIndent"/>
+
+    </rule>
+
+    <!-- ── Contexte WordPress ───────────────────────────────────────────── -->
+
+    <!-- Aligne sur l'en-tete du plugin : Requires at least 6.6. -->
+    <config name="minimum_wp_version" value="6.6"/>
+
+    <!-- Text domain declare dans l'en-tete du plugin. -->
+    <rule ref="WordPress.WP.I18n">
+        <properties>
+            <property name="text_domain" type="array">
+                <element value="g2rd-suivi-contact"/>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- Prefixe impose a toutes les fonctions, constantes et hooks globaux. -->
+    <rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+        <properties>
+            <property name="prefixes" type="array">
+                <element value="g2rd"/>
+                <element value="G2RD"/>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- PHPCompatibility : le plugin declare Requires PHP 8.0. -->
+    <config name="testVersion" value="8.0-"/>
+    <rule ref="PHPCompatibilityWP">
+        <include-pattern>*\.php$</include-pattern>
+    </rule>
+
+</ruleset>

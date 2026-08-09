@@ -1,0 +1,24 @@
+# Normalisation des fins de ligne : LF dans le depot, quel que soit l'OS.
+* text=auto eol=lf
+
+*.php text eol=lf
+*.xml text eol=lf
+*.json text eol=lf
+*.neon text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
+
+*.png binary
+*.jpg binary
+*.gif binary
+*.zip binary
+
+# Fichiers exclus de l'archive de distribution (composer archive / export).
+/.github            export-ignore
+/.gitattributes     export-ignore
+/.gitignore         export-ignore
+/phpcs.xml.dist     export-ignore
+/phpcs-security.xml export-ignore
+/phpstan.neon.dist  export-ignore
+/composer.json      export-ignore
+/SECURITY.md        export-ignore

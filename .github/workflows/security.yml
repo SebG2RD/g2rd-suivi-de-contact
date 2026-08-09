@@ -1,0 +1,158 @@
+name: Securite
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    # Tous les lundis a 6h00 UTC. Un audit periodique est indispensable : un
+    # avis de securite publie apres le dernier commit ne serait jamais vu par
+    # une CI declenchee uniquement sur push.
+    - cron: "0 6 * * 1"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # SAST oriente OWASP, specialise PHP/WordPress.
+  # ---------------------------------------------------------------------------
+  phpcs-security:
+    name: PHPCS Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: "8.2"
+          coverage: none
+          tools: composer, cs2pr
+
+      - name: Installer les dependances
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: PHPCS Security Audit
+        run: |
+          vendor/bin/phpcs \
+            --standard=phpcs-security.xml \
+            --extensions=php \
+            --ignore=vendor/* \
+            --runtime-set ParanoiaMode 0 \
+            --report-full \
+            --report-checkstyle=./phpcs-security-report.xml \
+            .
+
+      - name: Annotations
+        if: failure()
+        run: cs2pr ./phpcs-security-report.xml
+
+  # ---------------------------------------------------------------------------
+  # SAST generaliste. CodeQL ne prend pas PHP en charge : Semgrep est
+  # l'equivalent pour ce langage.
+  # ---------------------------------------------------------------------------
+  semgrep:
+    name: Semgrep SAST
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep:latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Semgrep
+        # --error : toute constatation fait echouer le job. C'est le
+        # comportement voulu — un signalement doit etre traite ou explicitement
+        # neutralise par un commentaire « nosemgrep » justifie dans le code.
+        run: |
+          semgrep scan \
+            --config=p/php \
+            --config=p/security-audit \
+            --config=p/secrets \
+            --config=p/xss \
+            --exclude=vendor \
+            --metrics=off \
+            --error \
+            --sarif --output=semgrep.sarif \
+            .
+
+      - name: Rapport SARIF
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: semgrep-sarif
+          path: semgrep.sarif
+          retention-days: 30
+          if-no-files-found: ignore
+
+  # ---------------------------------------------------------------------------
+  # Chaine d'approvisionnement : avis de securite sur les dependances figees
+  # dans composer.lock, et verification que le lock est bien synchronise avec
+  # composer.json (un lock desynchronise ferait auditer autre chose que ce qui
+  # est reellement installe).
+  # ---------------------------------------------------------------------------
+  dependencies:
+    name: Audit des dependances
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: "8.2"
+          coverage: none
+          tools: composer
+
+      - name: Verifier la coherence composer.json / composer.lock
+        run: composer validate --strict --no-check-publish
+
+      - name: Avis de securite (production et developpement)
+        run: composer audit --locked --no-interaction
+
+  # ---------------------------------------------------------------------------
+  # Securite des workflows eux-memes : zizmor detecte les injections de
+  # template, les checkout laissant trainer des identifiants, les permissions
+  # trop larges et les actions non epinglees. Une CI est une cible : elle
+  # dispose d'un jeton sur le depot.
+  # ---------------------------------------------------------------------------
+  workflows:
+    name: Audit des workflows
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Installer actionlint
+        run: |
+          bash <(curl -sSf https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+
+      - name: actionlint
+        run: ./actionlint -color
+
+      - name: Installer zizmor
+        run: pipx install zizmor
+
+      - name: zizmor
+        run: zizmor --persona=regular --min-severity=low .github/workflows/

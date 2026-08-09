@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<ruleset name="G2RD Suivi Contact — Security Audit">
+    <description>Audit de securite OWASP (phpcs-security-audit) pour le plugin.
+
+    Contrairement au theme G2RD, AUCUN sniff n'est exclu ici : le plugin
+    n'ouvre aucun fichier, n'execute aucun callback dynamique et ne fait
+    aucune requete SQL directe. Le standard complet passe donc sans faux
+    positif, et toute nouvelle alerte signale du code reellement a revoir.
+    </description>
+
+    <rule ref="Security"/>
+
+    <exclude-pattern>./vendor/*</exclude-pattern>
+</ruleset>

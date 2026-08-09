@@ -1,0 +1,131 @@
+name: Release
+
+# Une release est publiee en poussant un tag « vX.Y.Z ». C'est cette release
+# que les sites installes vont voir : l'updater du plugin interroge
+# /releases/latest et propose la mise a jour a partir du ZIP attache ici.
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version a publier (ex. 1.2.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Build & publication
+    runs-on: ubuntu-latest
+    permissions:
+      # Necessaire uniquement pour creer la release et y attacher le ZIP.
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Determiner la version
+        id: version
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            VERSION="$INPUT_VERSION"
+          else
+            VERSION="${TAG_NAME#v}"
+          fi
+
+          if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "ERREUR : version « $VERSION » non conforme a X.Y.Z"
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Verifier que l'en-tete du plugin porte la meme version
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          HEADER=$(grep -m1 -oP '^\s*\*\s*Version:\s*\K[0-9]+\.[0-9]+\.[0-9]+' g2rd-suivi-contact.php)
+
+          echo "En-tete du plugin : $HEADER"
+          echo "Version publiee   : $VERSION"
+
+          # Sans ce controle, on publierait une release vX.Y.Z contenant un
+          # plugin qui s'annonce en X.Y.(Z-1) : les sites telechargeraient la
+          # mise a jour, puis la reproposeraient en boucle a chaque controle.
+          if [ "$HEADER" != "$VERSION" ]; then
+            echo "ERREUR : l'en-tete du plugin et le tag divergent."
+            exit 1
+          fi
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: "8.2"
+          ini-values: memory_limit=1G
+          coverage: none
+          tools: composer
+
+      - name: Installer les dependances
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Controles qualite et securite
+        # On ne publie jamais une version qui n'a pas repasse la totalite des
+        # controles, meme si la CI etait verte sur le commit correspondant.
+        run: composer run check
+
+      - name: Construire le ZIP de distribution
+        run: |
+          set -euo pipefail
+          SLUG="g2rd-suivi-contact"
+
+          # Le dossier interne DOIT porter le slug du plugin : c'est lui qui
+          # devient le repertoire dans wp-content/plugins. Un nom different
+          # installerait une seconde copie au lieu de mettre a jour l'existante.
+          mkdir -p "dist/$SLUG"
+          cp g2rd-suivi-contact.php "dist/$SLUG/"
+          cp LICENSE "dist/$SLUG/" 2>/dev/null || true
+          cp readme.txt "dist/$SLUG/" 2>/dev/null || true
+
+          cd dist
+          zip -r "$SLUG.zip" "$SLUG"
+          cd ..
+
+          unzip -l "dist/$SLUG.zip"
+
+      - name: Verifier le contenu du ZIP
+        run: |
+          set -euo pipefail
+          SLUG="g2rd-suivi-contact"
+
+          # Le ZIP ne doit contenir ni outillage de developpement ni dependances.
+          if unzip -l "dist/$SLUG.zip" | grep -Eq 'vendor/|composer\.|phpcs|phpstan|\.github'; then
+            echo "ERREUR : le ZIP embarque des fichiers de developpement."
+            exit 1
+          fi
+
+          unzip -l "dist/$SLUG.zip" | grep -q "$SLUG/g2rd-suivi-contact.php"
+          echo "ZIP valide."
+
+      - name: Publier la release
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: "G2RD Suivi Contact ${{ steps.version.outputs.tag }}"
+          files: dist/g2rd-suivi-contact.zip
+          generate_release_notes: true
+          draft: false
+          prerelease: false

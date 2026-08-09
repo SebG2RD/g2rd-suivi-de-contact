@@ -1,0 +1,50 @@
+{
+  "name": "g2rd/g2rd-suivi-contact",
+  "description": "Plugin WordPress G2RD — suivi des clics de contact (téléphone et e-mail)",
+  "type": "wordpress-plugin",
+  "license": "EUPL-1.2",
+  "authors": [
+    {
+      "name": "Sebastien GERARD",
+      "homepage": "https://g2rd.fr"
+    }
+  ],
+  "require": {
+    "php": ">=8.0"
+  },
+  "require-dev": {
+    "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+    "phpcompatibility/phpcompatibility-wp": "^2.1",
+    "phpstan/phpstan": "^2.1",
+    "pheromone/phpcs-security-audit": "^2.0",
+    "szepeviktor/phpstan-wordpress": "^2.0",
+    "wp-coding-standards/wpcs": "^3.0"
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "sort-packages": true,
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true
+    }
+  },
+  "scripts": {
+    "phpcs": "phpcs --standard=phpcs.xml.dist",
+    "phpcs:fix": "phpcbf --standard=phpcs.xml.dist",
+    "phpcs:security": "phpcs --standard=phpcs-security.xml --extensions=php --ignore=vendor/* --runtime-set ParanoiaMode 0 .",
+    "phpcs:compat": "phpcs --standard=PHPCompatibilityWP --extensions=php --ignore=vendor/* --runtime-set testVersion 8.0- .",
+    "phpstan": "phpstan analyse --memory-limit=-1 --no-progress",
+    "lint": "@php -l g2rd-suivi-contact.php",
+    "audit:deps": "composer audit --locked --no-interaction",
+    "check": [
+      "@lint",
+      "@phpcs",
+      "@phpcs:security",
+      "@phpcs:compat",
+      "@phpstan",
+      "@audit:deps"
+    ]
+  },
+  "scripts-descriptions": {
+    "check": "Lance la totalité des contrôles qualité et sécurité exécutés par la CI."
+  }
+}
