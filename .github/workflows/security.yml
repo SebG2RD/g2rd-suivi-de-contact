@@ -66,7 +66,13 @@ jobs:
     name: Semgrep SAST
     runs-on: ubuntu-latest
     container:
-      image: semgrep/semgrep:latest
+      # Image epinglee par empreinte, pour la meme raison que les actions le
+      # sont par SHA : une etiquette flottante comme « latest » peut etre
+      # repointee vers une autre image sans que rien ne change ici, ce qui
+      # ferait executer du code arbitraire avec le jeton de la CI.
+      # Les regles, elles, restent telechargees a chaque execution : epingler
+      # l'image ne fige pas la base de detection.
+      image: semgrep/semgrep@sha256:bdf7013b2c3634a487671158da77c554f531742326b543a9464d2adf6c433ac8
 
     steps:
       - name: Checkout
